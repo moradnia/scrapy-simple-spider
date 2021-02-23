@@ -1,4 +1,7 @@
 import scrapy
+from whiskyscraper.items import WhiskyscraperItem
+from scrapy.loader  import ItemLoader
+
 
 class whiskySpider(scrapy.Spider):
     name = 'whisky'
@@ -6,19 +9,16 @@ class whiskySpider(scrapy.Spider):
     
     
     def parse(self,response):
-        for product in response.css('div.product-item-info'):
-            try:
-                yield {
-                'name': product.css('a.product-item-link::text').get(),
-                'price':product.css('span.price::text').get().replace('£',''),
-                'link':product.css('a.product-item-link').attrib['href'],
-            } 
-            except:
-                yield {
-                'name': product.css('a.product-item-link::text').get(),
-                'price':'Sold Out',
-                'link':product.css('a.product-item-link').attrib['href'],
-            }
+        for products in response.css('div.product-item-info'):
+            
+            l = ItemLoader(item=WhiskyscraperItem() ,selector=products)
+            l.add_css('name','a.product-item-link')
+            l.add_css('price','span.price')
+            l.add_css('link','a.product-item-link::attr(href)')
+            
+            yield l.load_item()
+
+        
         next_page = response.css('a.action.next').attrib['href']
         if next_page is not None:
-            yield response.follow(next_page,callback=self.parse)
+            yield response.follow(next_page, callback=self.parse)
